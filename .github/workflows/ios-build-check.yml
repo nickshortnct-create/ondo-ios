@@ -1,0 +1,70 @@
+# Ondo iOS build check on a GitHub macOS runner. No signing, no secrets.
+# Copy to ondo-ios/.github/workflows/ios-build-check.yml. Runs on push and by hand (Actions tab -> Run workflow).
+# Gives you the Kotlin link + Xcode errors directly, so the fix loop does not wait on the Mac.
+#
+# Check the two names against the repo before the first run:
+#   The project has no shared scheme, so xcodebuild builds the iosApp target directly.
+#   Gradle module is :composeApp (framework baseName ComposeApp).
+name: ios-build-check
+
+# Manual only for now: macOS minutes count 10x on a private repo. Add `push: branches: [main]`
+# back once Nick decides between public repo / private.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-build-check-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  XCODE_PROJECT: iosApp/iosApp.xcodeproj
+  XCODE_TARGET: iosApp
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache Kotlin/Native toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Pick newest Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+
+      - name: Link Kotlin framework (simulator, arm64)
+        run: ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64 --stacktrace
+
+      - name: Xcode build (simulator, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project "$XCODE_PROJECT" \
+            -target "$XCODE_TARGET" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee xcodebuild.log | grep -E 'error:|warning: .*deprecated|BUILD (SUCCEEDED|FAILED)' || true
+          grep -q 'BUILD SUCCEEDED' xcodebuild.log
+
+      - name: Keep the log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          if-no-files-found: ignore
