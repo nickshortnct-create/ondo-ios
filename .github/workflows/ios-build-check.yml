@@ -15,7 +15,8 @@ on:
 
 concurrency:
   group: ios-build-check-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a main run part-way (it kills the Gradle/Konan cache save); other refs can.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   XCODE_PROJECT: iosApp/iosApp.xcodeproj
