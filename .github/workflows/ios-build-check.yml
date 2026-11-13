@@ -7,9 +7,10 @@
 #   Gradle module is :composeApp (framework baseName ComposeApp).
 name: ios-build-check
 
-# Manual only for now: macOS minutes count 10x on a private repo. Add `push: branches: [main]`
-# back once Nick decides between public repo / private.
+# Public repo, so macOS minutes are free: check every push to main.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
