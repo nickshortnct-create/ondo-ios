@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+	<!--
+		cleartextTrafficPermitted is needed for people who are
+		using Navidrome instances that are on LAN/use http
+	-->
+	<base-config
+		cleartextTrafficPermitted="true"
+		tools:ignore="InsecureBaseConfiguration">
+		<trust-anchors>
+			<certificates src="system" />
+			<certificates
+				src="user"
+				tools:ignore="AcceptsUserCertificates" />
+		</trust-anchors>
+	</base-config>
+
+	<!-- No domain-config here on purpose. A domain-config for decknas.duckdns.org
+		(pinning ISRG Root X2 for that host) shipped in 907 but turned out
+		insufficient alone (908 added the actual fix: a custom trust manager
+		wired directly into the Android OkHttp engine's SSLContext, in
+		OndoApi.android.kt, which already covers decknas on every connection,
+		making the domain-config redundant). Worse, once any domain-config
+		exists, OkHttp refuses to use a custom (non-Android-internal)
+		trust manager for hosts outside it, throwing "Domain specific
+		configurations require that hostname aware checkServerTrusted(...) is
+		used". That broke Squid (zeus.squid.wtf) and would break every other
+		non-decknas host reached through the same client (AudioMuse,
+		ListenBrainz, KHInsider, YouTube fallback...). Do not re-add a
+		domain-config unless the OndoApi.android.kt trust manager is removed
+		first, or the two will conflict again the same way. -->
+</network-security-config>

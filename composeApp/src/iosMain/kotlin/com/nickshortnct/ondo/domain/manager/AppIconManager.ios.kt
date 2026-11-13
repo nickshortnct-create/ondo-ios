@@ -1,0 +1,8 @@
+package com.nickshortnct.ondo.domain.manager
+
+import com.nickshortnct.ondo.domain.models.settings.AppIconVariant
+
+actual class AppIconManager {
+	actual fun setVariant(newVariant: AppIconVariant) {}
+	actual fun getIcon(variant: AppIconVariant): Any? = null
+}

@@ -1,0 +1,7 @@
+<svg fill="#e3e3e3" height="24px" viewBox="0 -960 960 960" width="24px"
+	xmlns="http://www.w3.org/2000/svg">
+	<path d="M80-800H680V-680H600V-720H160V-400H560V-320H80Z" />
+	<path d="M320-320H440V-240H320Z" />
+	<path d="M200-240H560V-160H200Z" />
+	<path fill-rule="evenodd" d="M640-640H920V-160H640ZM720-560V-240H840V-560Z" />
+</svg>

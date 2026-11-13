@@ -1,0 +1,109 @@
+package com.nickshortnct.ondo.ui.screens.artist.components
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import kotlinx.collections.immutable.toPersistentList
+import ondo.composeapp.generated.resources.Res
+import ondo.composeapp.generated.resources.action_more
+import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
+import com.nickshortnct.ondo.icons.Icons
+import com.nickshortnct.ondo.icons.outlined.MoreVert
+import com.nickshortnct.ondo.shared.MediaPlayerViewModel
+import com.nickshortnct.ondo.ui.components.layouts.NestedTopBar
+import com.nickshortnct.ondo.ui.components.layouts.TopBarButton
+import com.nickshortnct.ondo.ui.components.sheets.ArtistSheet
+import com.nickshortnct.ondo.ui.core.UiState
+import com.nickshortnct.ondo.ui.screens.artist.viewmodels.ArtistState
+import com.nickshortnct.ondo.ui.screens.playlist.dialogs.PlaylistUpdateDialog
+
+@Composable
+fun ArtistDetailScreenTopBar(
+	scrolled: Boolean,
+	artistState: UiState<ArtistState>,
+	starred: Boolean? = null,
+	onSetStarred: ((Boolean) -> Unit)? = null,
+) {
+	val state = (artistState as? UiState.Success)?.data
+	val alpha by animateFloatAsState(
+		if (scrolled) 1f else 0f
+	)
+
+	val player = koinInject<MediaPlayerViewModel>()
+
+	var playlistDialogShown by rememberSaveable { mutableStateOf(false) }
+
+	if (state != null) {
+		NestedTopBar(
+			colors = TopAppBarDefaults.topAppBarColors(
+				containerColor = MaterialTheme.colorScheme.surface.copy(alpha = alpha)
+			),
+			title = {
+				AnimatedVisibility(
+					scrolled,
+					enter = scaleIn() + fadeIn(),
+					exit = scaleOut() + fadeOut()
+				) {
+					Text(state.artist.name)
+				}
+			},
+			actions = {
+				Box {
+					var expanded by remember { mutableStateOf(false) }
+					TopBarButton({
+						expanded = true
+					}) {
+						Icon(
+							Icons.Outlined.MoreVert,
+							stringResource(Res.string.action_more)
+						)
+					}
+					if (expanded) {
+						ArtistSheet(
+							onDismissRequest = { expanded = false },
+							artist = state.artist,
+							onPlayNext = {
+								state.albums.reversed().forEach { album ->
+									player.playNext(album)
+								}
+							},
+							onAddToQueue = {
+								state.albums.forEach { album ->
+									player.addToQueue(album)
+								}
+							},
+							onAddAllToPlaylist = {
+								playlistDialogShown = true
+							},
+							starred = starred,
+							onSetStarred = onSetStarred
+						)
+					}
+				}
+			}
+		)
+		if (playlistDialogShown) {
+			PlaylistUpdateDialog(
+				songs = state.albums.flatMap { it.songs }.toPersistentList(),
+				onDismissRequest = { playlistDialogShown = false }
+			)
+		}
+	} else {
+		NestedTopBar({})
+	}
+}
