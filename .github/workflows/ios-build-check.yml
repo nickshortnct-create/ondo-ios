@@ -3,7 +3,7 @@
 # Gives you the Kotlin link + Xcode errors directly, so the fix loop does not wait on the Mac.
 #
 # Check the two names against the repo before the first run:
-#   The project has no shared scheme, so xcodebuild builds the iosApp target directly.
+#   Builds the shared iosApp scheme, the same one the TestFlight archive uses.
 #   Gradle module is :composeApp (framework baseName ComposeApp).
 name: ios-build-check
 
@@ -20,7 +20,7 @@ concurrency:
 
 env:
   XCODE_PROJECT: iosApp/iosApp.xcodeproj
-  XCODE_TARGET: iosApp
+  XCODE_SCHEME: iosApp
 
 jobs:
   build:
@@ -55,10 +55,11 @@ jobs:
           set -o pipefail
           xcodebuild build \
             -project "$XCODE_PROJECT" \
-            -target "$XCODE_TARGET" \
+            -scheme "$XCODE_SCHEME" \
             -configuration Debug \
             -sdk iphonesimulator \
-            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            -destination 'generic/platform=iOS Simulator' \
+            ARCHS=arm64 \
             CODE_SIGNING_ALLOWED=NO \
             | tee xcodebuild.log | grep -E 'error:|warning: .*deprecated|BUILD (SUCCEEDED|FAILED)' || true
           grep -q 'BUILD SUCCEEDED' xcodebuild.log
